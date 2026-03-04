@@ -48,6 +48,9 @@
       'uniform vec2 u_resolution;',
       'uniform float u_time;',
       'uniform vec2 u_center;',
+      'uniform vec3 u_color_a;',
+      'uniform vec3 u_color_b;',
+      'uniform vec3 u_color_c;',
       '',
       'float hash(vec2 p) {',
       '  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);',
@@ -85,9 +88,9 @@
       '  float blanket = 0.92 + (sheet - 0.5) * 0.08;',
       '  float alpha = clamp(max(blanket, intensity * 0.62), 0.88, 0.98);',
       '',
-      '  vec3 plasmaBase = vec3(0.42, 0.08, 0.92);',
-      '  vec3 plasmaHot = vec3(0.96, 0.44, 1.0);',
-      '  vec3 plasmaCore = vec3(0.72, 0.26, 1.0);',
+      '  vec3 plasmaBase = u_color_a;',
+      '  vec3 plasmaHot = u_color_b;',
+      '  vec3 plasmaCore = u_color_c;',
       '  vec3 color = mix(plasmaBase, plasmaHot, filament);',
       '  color = mix(color, plasmaCore, core);',
       '',
@@ -154,10 +157,54 @@
     const uResolution = gl.getUniformLocation(program, 'u_resolution');
     const uTime = gl.getUniformLocation(program, 'u_time');
     const uCenter = gl.getUniformLocation(program, 'u_center');
+    const uColorA = gl.getUniformLocation(program, 'u_color_a');
+    const uColorB = gl.getUniformLocation(program, 'u_color_b');
+    const uColorC = gl.getUniformLocation(program, 'u_color_c');
 
     let centerX = 0.5;
     let centerY = 0.36;
     let rafId = 0;
+
+    function hexToRgb01(hex) {
+      const clean = hex.replace('#', '');
+      const full = clean.length === 3
+        ? clean.split('').map(function (ch) { return ch + ch; }).join('')
+        : clean;
+      const num = parseInt(full, 16);
+      return [
+        ((num >> 16) & 255) / 255,
+        ((num >> 8) & 255) / 255,
+        (num & 255) / 255
+      ];
+    }
+
+    function lerp(from, to, t) {
+      return from + (to - from) * t;
+    }
+
+    function blendColor(c1, c2, t) {
+      return [
+        lerp(c1[0], c2[0], t),
+        lerp(c1[1], c2[1], t),
+        lerp(c1[2], c2[2], t)
+      ];
+    }
+
+    const navyPalette = {
+      a: hexToRgb01('#09163E'),
+      b: hexToRgb01('#1E4D8B'),
+      c: hexToRgb01('#123565')
+    };
+    const violetPalette = {
+      a: hexToRgb01('#26086D'),
+      b: hexToRgb01('#8A36FF'),
+      c: hexToRgb01('#5A1FD4')
+    };
+    const neonVioletPalette = {
+      a: hexToRgb01('#320A87'),
+      b: hexToRgb01('#B34BFF'),
+      c: hexToRgb01('#7A2CFF')
+    };
 
     function resizeCanvas() {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -178,9 +225,27 @@
 
     function render(now) {
       const time = now * 0.001;
+      const waveA = (Math.sin(time * 0.42) + 1) * 0.5;
+      const waveB = (Math.sin(time * 0.31 + 1.4) + 1) * 0.5;
+      const waveC = (Math.sin(time * 0.63 + 2.2) + 1) * 0.5;
+      const violetDrive = Math.pow((waveA * 0.5 + waveB * 0.3 + waveC * 0.2), 0.65);
+      const navyDrive = 1 - violetDrive;
+      const neonBurst = Math.pow((Math.sin(time * 0.95 - 0.7) + 1) * 0.5, 2.0);
+
+      const aBase = blendColor(violetPalette.a, navyPalette.a, navyDrive);
+      const bBase = blendColor(violetPalette.b, navyPalette.b, Math.max(navyDrive, waveB * 0.6));
+      const cBase = blendColor(violetPalette.c, navyPalette.c, navyDrive * 0.86 + waveC * 0.14);
+
+      const aColor = blendColor(aBase, neonVioletPalette.a, neonBurst * 0.45);
+      const bColor = blendColor(bBase, neonVioletPalette.b, neonBurst * 0.72);
+      const cColor = blendColor(cBase, neonVioletPalette.c, neonBurst * 0.58);
+
       gl.uniform2f(uResolution, canvas.width, canvas.height);
       gl.uniform1f(uTime, time);
       gl.uniform2f(uCenter, centerX, centerY);
+      gl.uniform3f(uColorA, aColor[0], aColor[1], aColor[2]);
+      gl.uniform3f(uColorB, bColor[0], bColor[1], bColor[2]);
+      gl.uniform3f(uColorC, cColor[0], cColor[1], cColor[2]);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       rafId = window.requestAnimationFrame(render);
     }

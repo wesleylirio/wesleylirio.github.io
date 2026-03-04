@@ -7,6 +7,201 @@
     yearNode.textContent = new Date().getFullYear();
   }
 
+  function initHeroWebGLShader() {
+    const hero = document.querySelector('.hero');
+    if (!hero) {
+      return;
+    }
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.className = 'shader-canvas';
+    canvas.setAttribute('aria-hidden', 'true');
+    document.body.insertBefore(canvas, document.body.firstChild);
+
+    const gl = canvas.getContext('webgl', {
+      alpha: true,
+      antialias: false,
+      depth: false,
+      stencil: false,
+      premultipliedAlpha: false,
+      preserveDrawingBuffer: false
+    });
+
+    if (!gl) {
+      canvas.remove();
+      return;
+    }
+
+    const vertexSource = [
+      'attribute vec2 a_position;',
+      'void main() {',
+      '  gl_Position = vec4(a_position, 0.0, 1.0);',
+      '}'
+    ].join('\n');
+
+    const fragmentSource = [
+      'precision mediump float;',
+      'uniform vec2 u_resolution;',
+      'uniform float u_time;',
+      'uniform vec2 u_center;',
+      '',
+      'float hash(vec2 p) {',
+      '  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);',
+      '}',
+      '',
+      'float noise(vec2 p) {',
+      '  vec2 i = floor(p);',
+      '  vec2 f = fract(p);',
+      '  vec2 u = f * f * (3.0 - 2.0 * f);',
+      '  float a = hash(i);',
+      '  float b = hash(i + vec2(1.0, 0.0));',
+      '  float c = hash(i + vec2(0.0, 1.0));',
+      '  float d = hash(i + vec2(1.0, 1.0));',
+      '  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);',
+      '}',
+      '',
+      'void main() {',
+      '  vec2 uv = vec2(gl_FragCoord.x / u_resolution.x, 1.0 - (gl_FragCoord.y / u_resolution.y));',
+      '  vec2 p = uv - u_center;',
+      '  p.x *= u_resolution.x / u_resolution.y;',
+      '',
+      '  float d = length(p);',
+      '  float ring = sin(d * 44.0 - u_time * 3.9);',
+      '  float ripple = ring * exp(-d * 3.1);',
+      '',
+      '  float turbulence = noise(uv * 6.4 + vec2(u_time * 0.19, -u_time * 0.12));',
+      '  float drift = noise(uv * 13.5 + vec2(-u_time * 0.16, u_time * 0.1));',
+      '  float sheet = noise(uv * 3.6 + vec2(u_time * 0.09, u_time * 0.07));',
+      '  float field = ripple + (turbulence - 0.5) * 0.35 + (drift - 0.5) * 0.2;',
+      '  float filament = pow(abs(sin(field * 7.0 + u_time * 1.8)), 2.8);',
+      '  float core = exp(-d * 5.4);',
+      '',
+      '  float ambient = (turbulence * 0.22 + drift * 0.18 + sheet * 0.28);',
+      '  float intensity = 0.62 + ambient + (filament * 0.28 + core * 0.34);',
+      '  float blanket = 0.92 + (sheet - 0.5) * 0.08;',
+      '  float alpha = clamp(max(blanket, intensity * 0.62), 0.88, 0.98);',
+      '',
+      '  vec3 plasmaBase = vec3(0.42, 0.08, 0.92);',
+      '  vec3 plasmaHot = vec3(0.96, 0.44, 1.0);',
+      '  vec3 plasmaCore = vec3(0.72, 0.26, 1.0);',
+      '  vec3 color = mix(plasmaBase, plasmaHot, filament);',
+      '  color = mix(color, plasmaCore, core);',
+      '',
+      '  gl_FragColor = vec4(color, clamp(alpha, 0.0, 0.98));',
+      '}'
+    ].join('\n');
+
+    function compileShader(type, source) {
+      const shader = gl.createShader(type);
+      if (!shader) {
+        return null;
+      }
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        gl.deleteShader(shader);
+        return null;
+      }
+      return shader;
+    }
+
+    const vertShader = compileShader(gl.VERTEX_SHADER, vertexSource);
+    const fragShader = compileShader(gl.FRAGMENT_SHADER, fragmentSource);
+    if (!vertShader || !fragShader) {
+      canvas.remove();
+      return;
+    }
+
+    const program = gl.createProgram();
+    if (!program) {
+      canvas.remove();
+      return;
+    }
+
+    gl.attachShader(program, vertShader);
+    gl.attachShader(program, fragShader);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      canvas.remove();
+      return;
+    }
+
+    gl.useProgram(program);
+
+    const positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array([
+        -1, -1,
+        1, -1,
+        -1, 1,
+        -1, 1,
+        1, -1,
+        1, 1
+      ]),
+      gl.STATIC_DRAW
+    );
+
+    const aPosition = gl.getAttribLocation(program, 'a_position');
+    gl.enableVertexAttribArray(aPosition);
+    gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+
+    const uResolution = gl.getUniformLocation(program, 'u_resolution');
+    const uTime = gl.getUniformLocation(program, 'u_time');
+    const uCenter = gl.getUniformLocation(program, 'u_center');
+
+    let centerX = 0.5;
+    let centerY = 0.36;
+    let rafId = 0;
+
+    function resizeCanvas() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const width = Math.max(1, Math.floor(window.innerWidth * dpr));
+      const height = Math.max(1, Math.floor(window.innerHeight * dpr));
+      canvas.width = width;
+      canvas.height = height;
+      canvas.style.width = '100vw';
+      canvas.style.height = '100vh';
+      gl.viewport(0, 0, width, height);
+    }
+
+    function updateUniformAnchors() {
+      const rect = hero.getBoundingClientRect();
+      centerX = (rect.left + rect.width * 0.5) / window.innerWidth;
+      centerY = (rect.top + rect.height * 0.44) / window.innerHeight;
+    }
+
+    function render(now) {
+      const time = now * 0.001;
+      gl.uniform2f(uResolution, canvas.width, canvas.height);
+      gl.uniform1f(uTime, time);
+      gl.uniform2f(uCenter, centerX, centerY);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      rafId = window.requestAnimationFrame(render);
+    }
+
+    function onViewportChange() {
+      resizeCanvas();
+      updateUniformAnchors();
+    }
+
+    window.addEventListener('resize', onViewportChange);
+    window.addEventListener('scroll', updateUniformAnchors, { passive: true });
+    onViewportChange();
+    rafId = window.requestAnimationFrame(render);
+
+    window.addEventListener('beforeunload', function () {
+      if (rafId) {
+        window.cancelAnimationFrame(rafId);
+      }
+    });
+  }
+
   // Basic i18n placeholder for quick EN/PT toggle.
   const translations = {
     en: {
@@ -193,7 +388,6 @@
       placeholder.classList.add('is-visible');
     });
   });
+
+  initHeroWebGLShader();
 })();
-
-
-c88e7e37-c849-4793-a401-f58c8615e4c7

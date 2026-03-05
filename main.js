@@ -184,6 +184,9 @@
     let centerX = 0.5;
     let centerY = 0.36;
     let rafId = 0;
+    const navEntry = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || null;
+    const isRestoreNavigation = !!(navEntry && (navEntry.type === 'reload' || navEntry.type === 'back_forward'));
+    const storageKeyScrollY = 'plasma-last-scroll-y';
 
     function hexToRgb01(hex) {
       const clean = hex.replace('#', '');
@@ -241,6 +244,24 @@
     let scrollIntentDirection = 1;
     let transitionDirection = 1;
     let touchLastY = null;
+
+    function readStoredScrollY() {
+      try {
+        const raw = sessionStorage.getItem(storageKeyScrollY);
+        const value = raw ? Number(raw) : 0;
+        return Number.isFinite(value) ? value : 0;
+      } catch (err) {
+        return 0;
+      }
+    }
+
+    function writeStoredScrollY(value) {
+      try {
+        sessionStorage.setItem(storageKeyScrollY, String(Math.max(0, Math.round(value))));
+      } catch (err) {
+        // Ignore storage failures.
+      }
+    }
 
     function setScrollIntentFromDelta(delta) {
       if (delta > 0.2) {
@@ -357,7 +378,7 @@
       const rect = hero.getBoundingClientRect();
       const rawX = (rect.left + rect.width * 0.5) / window.innerWidth;
       const rawY = (rect.top + rect.height * 0.44) / window.innerHeight;
-      // Keep original dynamic center feel; only prevent extreme off-screen values in deep scroll.
+      // Keep original dynamic center behavior tied to hero; only ignore extreme off-screen values.
       if (rawX > -0.6 && rawX < 1.6) {
         centerX = rawX;
       }
@@ -366,8 +387,68 @@
       }
     }
 
+    let lastScrollY = window.scrollY;
+
+    function applyRestoredScrollState() {
+      const currentY = window.scrollY;
+      const storedY = readStoredScrollY();
+      const assumedY = (isRestoreNavigation && currentY <= 1 && storedY > 1) ? storedY : currentY;
+      const atTop = assumedY <= 1;
+
+      if (atTop) {
+        cycleActivated = false;
+        transitionActive = false;
+        currentPhase = phaseOrange;
+        fromPhase = phaseOrange;
+        targetPhase = phaseOrange;
+        transitionProgress = 1;
+        transitionDirection = 1;
+      } else {
+        // If page opens/restores below top, start from scrolled state instead of hero orange.
+        cycleActivated = true;
+        transitionActive = false;
+        currentPhase = phaseBlue;
+        fromPhase = phaseBlue;
+        targetPhase = phaseBlue;
+        transitionProgress = 1;
+        transitionDirection = 1;
+      }
+
+      lastScrollY = assumedY;
+      writeStoredScrollY(assumedY);
+      updateUniformAnchors();
+    }
+
+    function syncShaderToScroll() {
+      const currentY = window.scrollY;
+      writeStoredScrollY(currentY);
+      if (!cycleActivated && currentY > 1) {
+        applyRestoredScrollState();
+      }
+      if (Math.abs(currentY - lastScrollY) < 0.5) {
+        updateUniformAnchors();
+        return;
+      }
+
+      updateUniformAnchors();
+      const delta = currentY - lastScrollY;
+      advanceByScrollDelta(delta);
+
+      const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      // Avoid half-open transition fronts when browser restores at boundaries.
+      if (transitionActive && currentY <= 0.5 && transitionDirection < 0) {
+        finalizeTransition();
+      } else if (transitionActive && currentY >= maxScroll - 0.5 && transitionDirection > 0) {
+        finalizeTransition();
+      }
+
+      lastScrollY = currentY;
+    }
+
     function render(now) {
       const time = now * 0.001;
+      // Captures restored/programmatic scroll positions even without user wheel/touch input.
+      syncShaderToScroll();
       const waveProgress = transitionActive ? transitionProgress : 1;
 
       const fromColors = getPhaseColorSet(transitionActive ? fromPhase : currentPhase, time);
@@ -393,21 +474,9 @@
       updateUniformAnchors();
     }
 
-    let lastScrollY = window.scrollY;
     window.addEventListener('resize', onViewportChange);
     window.addEventListener('scroll', function () {
-      updateUniformAnchors();
-      const currentY = window.scrollY;
-      const delta = currentY - lastScrollY;
-      advanceByScrollDelta(delta);
-      const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-      // When user hits top/bottom, force-close any open transition front to avoid half-open color state.
-      if (transitionActive && currentY <= 0.5 && transitionDirection < 0) {
-        finalizeTransition();
-      } else if (transitionActive && currentY >= maxScroll - 0.5 && transitionDirection > 0) {
-        finalizeTransition();
-      }
-      lastScrollY = currentY;
+      syncShaderToScroll();
     }, { passive: true });
     window.addEventListener('wheel', function (event) {
       setScrollIntentFromDelta(event.deltaY);
@@ -434,10 +503,29 @@
     window.addEventListener('touchend', function () {
       touchLastY = null;
     }, { passive: true });
+
+    // Browser scroll-restoration can happen after script init; re-sync a few times.
+    window.addEventListener('pageshow', function () {
+      applyRestoredScrollState();
+      syncShaderToScroll();
+      window.setTimeout(applyRestoredScrollState, 80);
+      window.setTimeout(syncShaderToScroll, 100);
+      window.setTimeout(syncShaderToScroll, 260);
+    });
+    window.addEventListener('load', function () {
+      applyRestoredScrollState();
+      syncShaderToScroll();
+      window.setTimeout(applyRestoredScrollState, 120);
+      window.setTimeout(syncShaderToScroll, 140);
+      window.setTimeout(applyRestoredScrollState, 420);
+      window.setTimeout(syncShaderToScroll, 460);
+    });
     onViewportChange();
+    applyRestoredScrollState();
     rafId = window.requestAnimationFrame(render);
 
     window.addEventListener('beforeunload', function () {
+      writeStoredScrollY(window.scrollY);
       if (rafId) {
         window.cancelAnimationFrame(rafId);
       }
@@ -682,7 +770,22 @@
       }
     })();
 
-    setLanguage(savedLang || 'en');
+    function detectBrowserLang() {
+      const preferred = (navigator.languages && navigator.languages.length
+        ? navigator.languages
+        : [navigator.language || navigator.userLanguage || 'en']
+      ).map(function (item) {
+        return String(item || '').toLowerCase();
+      });
+
+      const hasPortuguese = preferred.some(function (code) {
+        return code.indexOf('pt') === 0;
+      });
+
+      return hasPortuguese ? 'pt' : 'en';
+    }
+
+    setLanguage(savedLang || detectBrowserLang());
   }
 
   // Enhanced anchor scrolling with sticky-header compensation.

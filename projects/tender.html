@@ -1,14 +1,14 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en" data-lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AI-Assisted Tender Analysis (POC) | Wesley Lirio</title>
-  <meta name="description" content="Case study: AI-assisted tender analysis and automation.">
-  <meta property="og:title" content="AI-Assisted Tender Analysis (POC) | Wesley Lirio">
-  <meta property="og:description" content="Automating procurement requirement analysis.">
+  <title>Compliance Automation for Bids | Wesley Lirio</title>
+  <meta name="description" content="Case study: Compliance automation for technical requirements in bids.">
+  <meta property="og:title" content="Compliance Automation for Bids | Wesley Lirio">
+  <meta property="og:description" content="Automating technical requirement compliance analysis.">
   <meta property="og:type" content="article">
-  <meta property="og:image" content="../assets/img/tender-thumb.jpg">
+  <meta property="og:image" content="../assets/img/thumbdroplita.png">
   <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg">
   <link rel="stylesheet" href="../styles.css">
 </head>
@@ -18,15 +18,13 @@
   <header class="site-header" id="top">
     <div class="container header-inner">
       <a href="../index.html" class="brand" aria-label="Home">
-        <span class="brand-main">Wesley</span>
-        <span class="brand-sub">Creative Technologist</span>
+        <span class="brand-main">Wesley Lirio</span>
       </a>
       <nav aria-label="Primary navigation">
         <ul class="nav-list">
-          <li><a href="../index.html#work">Work</a></li>
-          <li><a href="../index.html#about">About</a></li>
-          <li><a href="../index.html#capabilities">Capabilities</a></li>
-          <li><a href="../index.html#contact">Contact</a></li>
+          <li><a href="../index.html#about" data-i18n="nav_about">About</a></li>
+          <li><a href="../index.html#work" data-i18n="nav_work">Work</a></li>
+          <li><a href="../index.html#contact" data-i18n="nav_contact">Contact</a></li>
         </ul>
       </nav>
       <button class="lang-toggle" id="langToggle" type="button" aria-label="Toggle language" aria-pressed="false">EN | PT</button>
@@ -34,70 +32,79 @@
   </header>
 
   <main class="container section project-main" id="main-content">
-    <a class="back-link" href="../index.html#work">← Back to selected work</a>
+    <a class="back-link" href="../index.html#work" data-i18n="tender_back">? Back to selected work</a>
 
     <header class="project-header">
-      <h1>AI-Assisted Tender Analysis (POC)</h1>
-      <p>Automation pipeline for procurement requirement analysis, cross-reference matching, and structured spreadsheet output.</p>
+      <h1 data-i18n="tender_title">Compliance Automation for Bids</h1>
     </header>
+
+    <section class="project-block project-carousel-block" data-project-carousel>
+      <figure class="project-carousel-figure">
+        <img class="project-carousel-image" src="../assets/img/thumbdroplita.png" alt="Dashboard for bid uploads and analysis history">
+        <figcaption class="project-carousel-caption" data-carousel-caption></figcaption>
+      </figure>
+      <div class="project-carousel-controls">
+        <button class="project-carousel-btn" type="button" data-carousel-prev aria-label="Previous image">←</button>
+        <span class="project-carousel-index" data-carousel-index>1 / 5</span>
+        <button class="project-carousel-btn" type="button" data-carousel-next aria-label="Next image">→</button>
+      </div>
+      <div hidden>
+        <button type="button" data-carousel-slide data-src="../assets/img/thumbdroplita.png" data-alt-en="Dashboard for bid uploads and analysis history" data-alt-pt="Dashboard para upload de editais e historico de analises" data-caption-key="tender_slide_1"></button>
+        <button type="button" data-carousel-slide data-src="../assets/img/droplita1.png" data-alt-en="Item extraction selection interface" data-alt-pt="Interface de selecao de itens para analise" data-caption-key="tender_slide_2"></button>
+        <button type="button" data-carousel-slide data-src="../assets/img/droplita2.png" data-alt-en="Extracted item components" data-alt-pt="Componentes do item extraidos" data-caption-key="tender_slide_3"></button>
+        <button type="button" data-carousel-slide data-src="../assets/img/droplita3.png" data-alt-en="Evidence-based compliance analysis example" data-alt-pt="Exemplo de analise comprobatoria do item extraido" data-caption-key="tender_slide_4"></button>
+        <button type="button" data-carousel-slide data-src="../assets/img/droplita4.png" data-alt-en="Chat with catalog system UI" data-alt-pt="UI do sistema de Chat-Com-Catalogo" data-caption-key="tender_slide_5"></button>
+      </div>
+      <div class="video-placeholder">Images unavailable.</div>
+    </section>
 
     <div class="project-grid">
       <section class="project-block">
-        <h2>Summary</h2>
-        <p>Proof-of-concept aimed at reducing manual analysis time in public/private tender evaluation workflows through AI-assisted extraction.</p>
+        <h2 data-i18n="tender_summary_title">Summary</h2>
+        <p data-i18n="tender_summary_text">Functional prototype focused on automating technical requirement compliance analysis in bid documents.</p>
       </section>
 
       <section class="project-block">
-        <h2>Context</h2>
-        <p>Procurement teams spend significant effort reading dense documents, identifying requirements, and mapping them to internal catalog items.</p>
+        <h2 data-i18n="tender_context_title">Context</h2>
+        <p data-i18n="tender_context_text">Bid evaluation workflows demand extensive manual review of technical criteria, compliance rules, and supporting evidence.</p>
       </section>
 
       <section class="project-block">
-        <h2>Problem</h2>
-        <p>The process is repetitive, error-prone, and difficult to scale when large numbers of documents must be reviewed quickly.</p>
+        <h2 data-i18n="tender_problem_title">Problem</h2>
+        <p data-i18n="tender_problem_text">Manual requirement analysis is repetitive, time-consuming, and prone to inconsistency when volume increases.</p>
       </section>
 
       <section class="project-block">
-        <h2>Solution</h2>
-        <p>Designed a pipeline that extracts requirements, compares with existing product catalogs, and outputs structured data ready for review.</p>
+        <h2 data-i18n="tender_solution_title">Solution</h2>
+        <p data-i18n="tender_solution_text">Implemented an AI-assisted workflow to extract requirements, run compliance checks, and prepare structured outputs for decision support.</p>
       </section>
 
       <section class="project-block">
-        <h2>Technical Approach</h2>
-        <p>Combined document parsing, LLM-based information extraction, rule-based validation, and export routines for .xlsx generation.</p>
+        <h2 data-i18n="tender_approach_title">Technical Approach</h2>
+        <p data-i18n="tender_approach_text">Combined document parsing, LLM-driven extraction, validation rules, and spreadsheet generation for auditable analysis flows.</p>
       </section>
 
       <section class="project-block">
-        <h2>Outcome</h2>
-        <p>The POC demonstrated viable acceleration of analysis cycles and improved consistency in early-stage procurement decision support.</p>
+        <h2 data-i18n="tender_outcome_title">Outcome</h2>
+        <p data-i18n="tender_outcome_text">Delivered a functional prototype that reduced manual effort and increased consistency in requirement compliance analysis.</p>
       </section>
 
       <section class="project-block">
-        <h2>Tech Stack</h2>
+        <h2 data-i18n="tender_stack_title">Tech Stack</h2>
         <div class="tech-stack">
           <span>Node.js</span>
           <span>LLM APIs</span>
           <span>Automation</span>
-          <span>Spreadsheet Export</span>
+          <span>.xlsx Export</span>
           <span>REST APIs</span>
         </div>
-      </section>
-
-      <section class="project-block">
-        <h2>Video / Demo</h2>
-        <video controls preload="none" poster="../assets/img/tender-thumb.jpg">
-          <source src="../assets/video/tender-preview.mp4" type="video/mp4">
-          Your browser does not support HTML5 video.
-        </video>
-        <div class="video-placeholder">Video coming soon. Replace with demo footage when available.</div>
       </section>
     </div>
   </main>
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <small>&copy; <span id="year"></span> Wesley. All rights reserved.</small>
-      <a href="https://github.com/" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <small>&copy; <span id="year"></span> Wesley Lirio. All rights reserved.</small>
     </div>
   </footer>
 

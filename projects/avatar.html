@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en" data-lang="en">
 <head>
   <meta charset="utf-8">
@@ -8,7 +8,7 @@
   <meta property="og:title" content="3D AI Conversational Avatar | Wesley Lirio">
   <meta property="og:description" content="Embodied conversational AI with real-time 3D.">
   <meta property="og:type" content="article">
-  <meta property="og:image" content="../assets/img/avatar-thumb.jpg">
+  <meta property="og:image" content="../assets/img/avatar-thumb.png">
   <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg">
   <link rel="stylesheet" href="../styles.css">
 </head>
@@ -18,15 +18,13 @@
   <header class="site-header" id="top">
     <div class="container header-inner">
       <a href="../index.html" class="brand" aria-label="Home">
-        <span class="brand-main">Wesley</span>
-        <span class="brand-sub">Creative Technologist</span>
+        <span class="brand-main">Wesley Lirio</span>
       </a>
       <nav aria-label="Primary navigation">
         <ul class="nav-list">
-          <li><a href="../index.html#work">Work</a></li>
-          <li><a href="../index.html#about">About</a></li>
-          <li><a href="../index.html#capabilities">Capabilities</a></li>
-          <li><a href="../index.html#contact">Contact</a></li>
+          <li><a href="../index.html#about" data-i18n="nav_about">About</a></li>
+          <li><a href="../index.html#work" data-i18n="nav_work">Work</a></li>
+          <li><a href="../index.html#contact" data-i18n="nav_contact">Contact</a></li>
         </ul>
       </nav>
       <button class="lang-toggle" id="langToggle" type="button" aria-label="Toggle language" aria-pressed="false">EN | PT</button>
@@ -34,70 +32,71 @@
   </header>
 
   <main class="container section project-main" id="main-content">
-    <a class="back-link" href="../index.html#work">← Back to selected work</a>
+    <a class="back-link" href="../index.html#work" data-i18n="avatar_back">? Back to selected work</a>
 
     <header class="project-header">
-      <h1>3D AI Conversational Avatar</h1>
-      <p>Embodied conversational AI with real-time 3D rendering, speech synthesis, and scalable integration for product touchpoints.</p>
+      <h1 data-i18n="avatar_title">3D AI Conversational Avatar</h1>
     </header>
+
+    <section class="project-block activation-reels">
+      <div class="reels-grid reels-grid--square" data-image-gallery>
+        <button class="gallery-item" type="button" data-gallery-src="../assets/img/avatar-print-menu.png" data-gallery-alt="Avatar menu screen">
+          <img src="../assets/img/avatar-print-menu.png" alt="Avatar menu screen">
+        </button>
+        <button class="gallery-item" type="button" data-gallery-src="../assets/img/avatar-thumb.png" data-gallery-alt="Avatar interaction screen">
+          <img src="../assets/img/avatar-thumb.png" alt="Avatar interaction screen">
+        </button>
+      </div>
+      <div class="video-placeholder">Images unavailable.</div>
+    </section>
 
     <div class="project-grid">
       <section class="project-block">
-        <h2>Summary</h2>
-        <p>Prototype focused on natural interactions through an expressive 3D avatar that responds in real time and can be embedded across channels.</p>
+        <h2 data-i18n="avatar_summary_title">Summary</h2>
+        <p data-i18n="avatar_summary_text">Prototype focused on natural interactions through an expressive 3D avatar that responds in real time and can be embedded across channels.</p>
       </section>
 
       <section class="project-block">
-        <h2>Context</h2>
-        <p>The objective was to bridge conversational AI and visual identity by creating an avatar interface suitable for customer engagement and demos.</p>
+        <h2 data-i18n="avatar_context_title">Context</h2>
+        <p data-i18n="avatar_context_text">The objective was to bridge conversational AI and visual identity by creating an avatar interface suitable for customer engagement and demos.</p>
       </section>
 
       <section class="project-block">
-        <h2>Problem</h2>
-        <p>Text-only assistants lack emotional presence and can feel detached in experience-driven products. Real-time rendering and lip-sync are often fragile.</p>
+        <h2 data-i18n="avatar_problem_title">Problem</h2>
+        <p data-i18n="avatar_problem_text">Text-only assistants lack emotional presence and can feel detached in experience-driven products. Real-time rendering and lip-sync are often fragile.</p>
       </section>
 
       <section class="project-block">
-        <h2>Solution</h2>
-        <p>Implemented a full interaction pipeline combining LLM responses, TTS output, and lip-sync animation in a performant WebGL scene.</p>
+        <h2 data-i18n="avatar_solution_title">Solution</h2>
+        <p data-i18n="avatar_solution_text">Implemented a full interaction pipeline combining LLM responses, TTS output, and lip-sync animation in a performant WebGL scene.</p>
       </section>
 
       <section class="project-block">
-        <h2>Technical Approach</h2>
-        <p>Built modular architecture to support widget embedding, avatar state control, and future WebXR extension without changing core logic.</p>
+        <h2 data-i18n="avatar_approach_title">Technical Approach</h2>
+        <p data-i18n="avatar_approach_text">Built modular architecture to support widget embedding, avatar state control, and future WebXR extension without changing core logic.</p>
       </section>
 
       <section class="project-block">
-        <h2>Outcome</h2>
-        <p>Delivered a demonstrable AI avatar POC with smooth response flow and reusable architecture for future productization.</p>
+        <h2 data-i18n="avatar_outcome_title">Outcome</h2>
+        <p data-i18n="avatar_outcome_text">Delivered a demonstrable AI avatar prototype with smooth response flow and reusable architecture for future productization.</p>
       </section>
 
       <section class="project-block">
-        <h2>Tech Stack</h2>
+        <h2 data-i18n="avatar_stack_title">Tech Stack</h2>
         <div class="tech-stack">
           <span>WebGL</span>
           <span>Three.js</span>
           <span>LLM APIs</span>
           <span>TTS</span>
-          <span>WebXR-ready</span>
+          <span>WebXR</span>
         </div>
-      </section>
-
-      <section class="project-block">
-        <h2>Video / Demo</h2>
-        <video controls preload="none" poster="../assets/img/avatar-thumb.jpg">
-          <source src="../assets/video/avatar-preview.mp4" type="video/mp4">
-          Your browser does not support HTML5 video.
-        </video>
-        <div class="video-placeholder">Video coming soon. Replace with demo footage when available.</div>
       </section>
     </div>
   </main>
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <small>&copy; <span id="year"></span> Wesley. All rights reserved.</small>
-      <a href="https://github.com/" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <small>&copy; <span id="year"></span> Wesley Lirio. All rights reserved.</small>
     </div>
   </footer>
 

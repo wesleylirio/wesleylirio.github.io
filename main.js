@@ -187,6 +187,89 @@
     const navEntry = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || null;
     const isRestoreNavigation = !!(navEntry && (navEntry.type === 'reload' || navEntry.type === 'back_forward'));
     const storageKeyScrollY = 'plasma-last-scroll-y';
+    const urlParams = new URLSearchParams(window.location.search);
+    const debugFlagFromUrl = urlParams.get('debugShader');
+    if (debugFlagFromUrl === '1') {
+      try { localStorage.setItem('shader-debug', '1'); } catch (err) {}
+    } else if (debugFlagFromUrl === '0') {
+      try { localStorage.removeItem('shader-debug'); } catch (err) {}
+    }
+    const shaderDebug = (function () {
+      try {
+        return debugFlagFromUrl === '1' || localStorage.getItem('shader-debug') === '1';
+      } catch (err) {
+        return debugFlagFromUrl === '1';
+      }
+    })();
+
+    const phaseNameMap = {
+      0: 'orange',
+      1: 'blue',
+      2: 'purple'
+    };
+
+    let debugPanel = null;
+    let debugFrameCount = 0;
+
+    function ensureDebugPanel() {
+      if (!shaderDebug || debugPanel) {
+        return;
+      }
+      debugPanel = document.createElement('pre');
+      debugPanel.setAttribute('aria-hidden', 'true');
+      debugPanel.style.position = 'fixed';
+      debugPanel.style.right = '10px';
+      debugPanel.style.bottom = '10px';
+      debugPanel.style.zIndex = '3000';
+      debugPanel.style.margin = '0';
+      debugPanel.style.padding = '8px 10px';
+      debugPanel.style.maxWidth = 'min(92vw, 560px)';
+      debugPanel.style.whiteSpace = 'pre-wrap';
+      debugPanel.style.font = '12px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+      debugPanel.style.color = '#fff';
+      debugPanel.style.background = 'rgba(0,0,0,0.72)';
+      debugPanel.style.border = '1px solid rgba(255,140,44,0.8)';
+      debugPanel.style.borderRadius = '8px';
+      debugPanel.style.pointerEvents = 'none';
+      document.body.appendChild(debugPanel);
+    }
+
+    function debugSnapshot(tag, extra) {
+      if (!shaderDebug) {
+        return;
+      }
+      const storedY = readStoredScrollY();
+      const data = Object.assign({
+        tag: tag,
+        navType: navEntry ? navEntry.type : 'unknown',
+        isRestoreNavigation: isRestoreNavigation,
+        scrollY: Math.round(window.scrollY),
+        storedY: Math.round(storedY),
+        lastScrollY: Math.round(lastScrollY),
+        cycleActivated: cycleActivated,
+        transitionActive: transitionActive,
+        currentPhase: phaseNameMap[currentPhase] || currentPhase,
+        fromPhase: phaseNameMap[fromPhase] || fromPhase,
+        targetPhase: phaseNameMap[targetPhase] || targetPhase,
+        transitionProgress: Number(transitionProgress.toFixed(3)),
+        transitionDirection: transitionDirection,
+        centerX: Number(centerX.toFixed(3)),
+        centerY: Number(centerY.toFixed(3))
+      }, extra || {});
+
+      const text = Object.keys(data).map(function (key) {
+        return key + ': ' + data[key];
+      }).join('\n');
+
+      ensureDebugPanel();
+      if (debugPanel) {
+        debugPanel.textContent = text;
+      }
+
+      if (tag !== 'frame') {
+        console.debug('[shader-debug]', data);
+      }
+    }
 
     function hexToRgb01(hex) {
       const clean = hex.replace('#', '');
@@ -261,6 +344,23 @@
       } catch (err) {
         // Ignore storage failures.
       }
+    }
+
+    function resolveInitialScrollPosition() {
+      const storedY = readStoredScrollY();
+      const currentY = window.scrollY;
+
+      // For reload/back-forward, force deterministic restoration before shader state setup.
+      if (isRestoreNavigation && storedY > 1 && Math.abs(currentY - storedY) > 1) {
+        debugSnapshot('resolveInitialScrollPosition:restoreScrollToStored', {
+          currentY: Math.round(currentY),
+          storedY: Math.round(storedY)
+        });
+        window.scrollTo(0, storedY);
+        return storedY;
+      }
+
+      return currentY;
     }
 
     function setScrollIntentFromDelta(delta) {
@@ -387,13 +487,11 @@
       }
     }
 
-    let lastScrollY = window.scrollY;
+    let lastScrollY = 0;
 
     function applyRestoredScrollState() {
-      const currentY = window.scrollY;
-      const storedY = readStoredScrollY();
-      const assumedY = (isRestoreNavigation && currentY <= 1 && storedY > 1) ? storedY : currentY;
-      const atTop = assumedY <= 1;
+      const currentY = resolveInitialScrollPosition();
+      const atTop = currentY <= 1;
 
       if (atTop) {
         cycleActivated = false;
@@ -414,19 +512,22 @@
         transitionDirection = 1;
       }
 
-      lastScrollY = assumedY;
-      writeStoredScrollY(assumedY);
+      lastScrollY = currentY;
+      writeStoredScrollY(currentY);
       updateUniformAnchors();
+      debugSnapshot('applyRestoredScrollState', { atTop: atTop });
     }
 
     function syncShaderToScroll() {
       const currentY = window.scrollY;
       writeStoredScrollY(currentY);
+
       if (!cycleActivated && currentY > 1) {
         applyRestoredScrollState();
       }
       if (Math.abs(currentY - lastScrollY) < 0.5) {
         updateUniformAnchors();
+        debugSnapshot('frame');
         return;
       }
 
@@ -443,12 +544,21 @@
       }
 
       lastScrollY = currentY;
+      debugSnapshot('syncShaderToScroll:deltaApplied', {
+        delta: Math.round(delta)
+      });
     }
 
     function render(now) {
       const time = now * 0.001;
       // Captures restored/programmatic scroll positions even without user wheel/touch input.
       syncShaderToScroll();
+      if (shaderDebug) {
+        debugFrameCount += 1;
+        if (debugFrameCount % 20 === 0) {
+          debugSnapshot('frame');
+        }
+      }
       const waveProgress = transitionActive ? transitionProgress : 1;
 
       const fromColors = getPhaseColorSet(transitionActive ? fromPhase : currentPhase, time);
@@ -511,6 +621,7 @@
       window.setTimeout(applyRestoredScrollState, 80);
       window.setTimeout(syncShaderToScroll, 100);
       window.setTimeout(syncShaderToScroll, 260);
+      debugSnapshot('event:pageshow');
     });
     window.addEventListener('load', function () {
       applyRestoredScrollState();
@@ -519,9 +630,11 @@
       window.setTimeout(syncShaderToScroll, 140);
       window.setTimeout(applyRestoredScrollState, 420);
       window.setTimeout(syncShaderToScroll, 460);
+      debugSnapshot('event:load');
     });
     onViewportChange();
     applyRestoredScrollState();
+    debugSnapshot('init:afterApplyRestoredScrollState');
     rafId = window.requestAnimationFrame(render);
 
     window.addEventListener('beforeunload', function () {

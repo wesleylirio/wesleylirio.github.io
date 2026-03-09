@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Portifolio</title>
+  <title>Portfolio | Wesley Lirio</title>
   <meta name="description" content="Creative Technologist portfolio focused on AI, real-time 3D, and computer vision interactive systems.">
   <meta property="og:title" content="Wesley Lirio | Creative Technologist">
   <meta property="og:description" content="I build interactive systems. AI, real-time 3D, computer vision.">
@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <a class="skip-link" href="#main-content">Skip to content</a>
+  <a class="skip-link" href="#main-content" data-i18n="skip_to_content">Skip to content</a>
 
   <header class="site-header" id="top">
     <div class="container header-inner">
@@ -46,9 +46,9 @@
         <h2 id="about-title" data-i18n="about_title">About</h2>
       </div>
       <p data-i18n="about_text_1">I am Wesley Lirio, and I build interactive systems using AI, real-time 3D, and computer vision.</p>
-      <p data-i18n="about_text_2">My work focuses on transforming ideas into functional prototypes - systems that can be tested, demonstrated, and iterated quickly. I combine emerging technologies with practical execution, turning concepts into usable products.</p>
+      <p data-i18n="about_text_2">My work focuses on turning ideas into functional prototypes - systems that can be tested, demonstrated, and iterated quickly. I combine emerging technologies with practical execution to turn concepts into usable products.</p>
       <p data-i18n="about_text_3">I've worked across event activations, AI-driven avatars, and automation tools, always focusing on practical implementation and rapid iteration.</p>
-      <p data-i18n="about_text_4">I'm driven by curiosity, execution, and the challenge of making complex technology feel simple and usable.</p>
+      <p data-i18n="about_text_4">I'm driven by curiosity, execution, and the challenge of turning complex technologies into simple, useful experiences.</p>
     </section>
 
     <section class="section container" id="work" aria-labelledby="work-title">
@@ -79,9 +79,8 @@
             </ul>
             <div class="tags" aria-label="Tags">
               <span>CV</span>
-              <span data-i18n="work_tag_events">Events</span>
               <span>WebGL</span>
-              <span data-i18n="work_tag_game">Game</span>
+              <span>Electron</span>
             </div>
             <a class="case-link" href="projects/activation.html"><span data-i18n="work_case_link">View case study</span></a>
           </div>
@@ -108,21 +107,21 @@
               <li data-i18n="work_2_b3">Embeddable widget + WebXR</li>
             </ul>
             <div class="tags" aria-label="Tags">
-              <span>3D</span>
+              <span>Three.js</span>
+              <span>WebGL</span>
               <span>AI</span>
-              <span>WebXR</span>
             </div>
             <a class="case-link" href="projects/avatar.html"><span data-i18n="work_case_link">View case study</span></a>
           </div>
         </article>
 
-        <article class="work-card" aria-label="AI-Assisted Tender Analysis">
+        <article class="work-card work-card--tender" aria-label="AI Tender Compliance Platform">
           <a class="card-link-wrap" href="projects/tender.html">
             <div class="media-wrap" data-video="assets/video/tender-preview.mp4">
               <div class="media-fallback" aria-hidden="true">
                 <span data-i18n="work_preview">Preview</span>
               </div>
-              <img src="assets/img/tender-thumb.png" alt="AI-Assisted Tender Analysis thumbnail" loading="lazy">
+              <img src="assets/img/tender-thumb.png" alt="AI Tender Compliance Platform thumbnail" loading="lazy">
               <video muted loop playsinline preload="none" aria-hidden="true">
                 <source src="assets/video/tender-preview.mp4" type="video/mp4">
               </video>
@@ -130,16 +129,16 @@
             </div>
           </a>
           <div class="card-body">
-            <h3 data-i18n="work_3_title">Compliance Automation for Bids</h3>
+            <h3 data-i18n="work_3_title">AI Tender Compliance Platform</h3>
             <ul>
               <li data-i18n="work_3_b1">Technical requirement extraction</li>
               <li data-i18n="work_3_b2">Compliance analysis and rule matching</li>
               <li data-i18n="work_3_b3">Structured .xlsx export</li>
             </ul>
             <div class="tags" aria-label="Tags">
-              <span data-i18n="work_tag_full_stack">Full-stack</span>
-              <span>AI</span>
-              <span data-i18n="work_tag_automation">Automation</span>
+              <span>Python</span>
+              <span>Flask</span>
+              <span>SQLite</span>
             </div>
             <a class="case-link" href="projects/tender.html"><span data-i18n="work_case_link">View case study</span></a>
           </div>
@@ -154,8 +153,8 @@
       <div class="contact-panel">
         <p data-i18n="contact_text">Open to opportunities in product development, innovation teams, and interactive systems.</p>
         <div class="contact-actions">
-          <a class="contact-cta" href="mailto:mechamedeley@gmail.com">Email me</a>
-          <a class="contact-cta" href="https://linkedin.com/in/wesleylirio" target="_blank" rel="noopener noreferrer">Let's connect</a>
+          <a class="contact-cta" href="mailto:mechamedeley@gmail.com" data-i18n="contact_email">Email me</a>
+          <a class="contact-cta" href="https://linkedin.com/in/wesleylirio" target="_blank" rel="noopener noreferrer" data-i18n="contact_connect">Let's connect</a>
         </div>
       </div>
     </section>
@@ -163,7 +162,7 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <small>&copy; <span id="year"></span> Wesley. All rights reserved.</small>
+      <small>&copy; <span id="year"></span> Wesley Lirio. All rights reserved.</small>
     </div>
   </footer>
 

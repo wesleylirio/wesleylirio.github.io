@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Compliance Automation for Bids | Wesley Lirio</title>
-  <meta name="description" content="Case study: Compliance automation for technical requirements in bids.">
-  <meta property="og:title" content="Compliance Automation for Bids | Wesley Lirio">
-  <meta property="og:description" content="Automating technical requirement compliance analysis.">
+  <title>AI Tender Compliance Platform | Wesley Lirio</title>
+  <meta name="description" content="Case study of an AI-assisted procurement compliance platform with multi-stage LLM workflows, observability, and human-in-the-loop validation.">
+  <meta property="og:title" content="AI Tender Compliance Platform | Wesley Lirio">
+  <meta property="og:description" content="AI-assisted procurement compliance platform with multi-stage LLM workflows and human-in-the-loop validation.">
   <meta property="og:type" content="article">
   <meta property="og:image" content="../assets/img/thumbdroplita.png">
   <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg">
   <link rel="stylesheet" href="../styles.css">
 </head>
 <body>
-  <a class="skip-link" href="#main-content">Skip to content</a>
+  <a class="skip-link" href="#main-content" data-i18n="skip_to_content">Skip to content</a>
 
   <header class="site-header" id="top">
     <div class="container header-inner">
@@ -32,10 +32,10 @@
   </header>
 
   <main class="container section project-main" id="main-content">
-    <a class="back-link" href="../index.html#work" data-i18n="tender_back">? Back to selected work</a>
+    <a class="back-link" href="../index.html" data-i18n="tender_back">← Back to selected work</a>
 
     <header class="project-header">
-      <h1 data-i18n="tender_title">Compliance Automation for Bids</h1>
+      <h1 data-i18n="tender_title">AI Tender Compliance Platform</h1>
     </header>
 
     <section class="project-block project-carousel-block" data-project-carousel>
@@ -49,54 +49,62 @@
         <button class="project-carousel-btn" type="button" data-carousel-next aria-label="Next image">→</button>
       </div>
       <div hidden>
-        <button type="button" data-carousel-slide data-src="../assets/img/thumbdroplita.png" data-alt-en="Dashboard for bid uploads and analysis history" data-alt-pt="Dashboard para upload de editais e historico de analises" data-caption-key="tender_slide_1"></button>
-        <button type="button" data-carousel-slide data-src="../assets/img/droplita1.png" data-alt-en="Item extraction selection interface" data-alt-pt="Interface de selecao de itens para analise" data-caption-key="tender_slide_2"></button>
-        <button type="button" data-carousel-slide data-src="../assets/img/droplita2.png" data-alt-en="Extracted item components" data-alt-pt="Componentes do item extraidos" data-caption-key="tender_slide_3"></button>
-        <button type="button" data-carousel-slide data-src="../assets/img/droplita3.png" data-alt-en="Evidence-based compliance analysis example" data-alt-pt="Exemplo de analise comprobatoria do item extraido" data-caption-key="tender_slide_4"></button>
-        <button type="button" data-carousel-slide data-src="../assets/img/droplita4.png" data-alt-en="Chat with catalog system UI" data-alt-pt="UI do sistema de Chat-Com-Catalogo" data-caption-key="tender_slide_5"></button>
+        <button type="button" data-carousel-slide data-src="../assets/img/thumbdroplita.png" data-alt-en="Dashboard for bid uploads and analysis history" data-alt-pt="Dashboard para upload de editais e histórico de análises" data-caption-key="tender_slide_1"></button>
+        <button type="button" data-carousel-slide data-src="../assets/img/droplita1.png" data-alt-en="Item extraction selection interface" data-alt-pt="Interface de seleção de itens para análise" data-caption-key="tender_slide_2"></button>
+        <button type="button" data-carousel-slide data-src="../assets/img/droplita2.png" data-alt-en="Extracted item components" data-alt-pt="Componentes do item extraídos" data-caption-key="tender_slide_3"></button>
+        <button type="button" data-carousel-slide data-src="../assets/img/droplita3.png" data-alt-en="Evidence-based compliance analysis example" data-alt-pt="Exemplo de análise comprobatória do item extraído" data-caption-key="tender_slide_4"></button>
+        <button type="button" data-carousel-slide data-src="../assets/img/droplita4.png" data-alt-en="Chat with catalog system UI" data-alt-pt="UI do sistema de Chat-Com-Catálogo" data-caption-key="tender_slide_5"></button>
       </div>
-      <div class="video-placeholder">Images unavailable.</div>
+      <div class="video-placeholder" data-i18n="tender_media_unavailable">Images unavailable.</div>
     </section>
 
     <div class="project-grid">
       <section class="project-block">
         <h2 data-i18n="tender_summary_title">Summary</h2>
-        <p data-i18n="tender_summary_text">Functional prototype focused on automating technical requirement compliance analysis in bid documents.</p>
+        <p data-i18n="tender_summary_text">AI-assisted platform built to automate technical compliance analysis for public procurement documents.</p>
       </section>
 
       <section class="project-block">
         <h2 data-i18n="tender_context_title">Context</h2>
-        <p data-i18n="tender_context_text">Bid evaluation workflows demand extensive manual review of technical criteria, compliance rules, and supporting evidence.</p>
+        <p data-i18n="tender_context_text">Procurement teams rely on manual review of technical criteria, compliance rules, and supporting evidence across large PDF documents.</p>
       </section>
 
       <section class="project-block">
         <h2 data-i18n="tender_problem_title">Problem</h2>
-        <p data-i18n="tender_problem_text">Manual requirement analysis is repetitive, time-consuming, and prone to inconsistency when volume increases.</p>
+        <p data-i18n="tender_problem_text">Manual analysis becomes slow, repetitive, and difficult to scale when requirement volume and document complexity increase.</p>
       </section>
 
       <section class="project-block">
         <h2 data-i18n="tender_solution_title">Solution</h2>
-        <p data-i18n="tender_solution_text">Implemented an AI-assisted workflow to extract requirements, run compliance checks, and prepare structured outputs for decision support.</p>
+        <p data-i18n="tender_solution_text">Built a multi-stage AI workflow to extract requirements, validate compliance, and generate structured outputs for analyst review and decision support.</p>
+      </section>
+
+      <section class="project-block">
+        <h2 data-i18n="tender_architecture_title">Architecture</h2>
+        <p data-i18n="tender_architecture_text">Hybrid AI system combining multi-stage LLM extraction with deterministic validation logic and operator review.</p>
       </section>
 
       <section class="project-block">
         <h2 data-i18n="tender_approach_title">Technical Approach</h2>
-        <p data-i18n="tender_approach_text">Combined document parsing, LLM-driven extraction, validation rules, and spreadsheet generation for auditable analysis flows.</p>
+        <p data-i18n="tender_approach_text">Combined PDF parsing, layered LLM workflows, deterministic validation rules, real-time observability, and exportable structured outputs.</p>
       </section>
 
       <section class="project-block">
         <h2 data-i18n="tender_outcome_title">Outcome</h2>
-        <p data-i18n="tender_outcome_text">Delivered a functional prototype that reduced manual effort and increased consistency in requirement compliance analysis.</p>
+        <p data-i18n="tender_outcome_text">Delivered an MVP with auditable compliance analysis, human-in-the-loop review, and evidence-based outputs for operational workflows.</p>
       </section>
 
       <section class="project-block">
         <h2 data-i18n="tender_stack_title">Tech Stack</h2>
         <div class="tech-stack">
-          <span>Node.js</span>
+          <span>Python</span>
+          <span>Flask</span>
+          <span>Socket.IO</span>
+          <span>SQLite</span>
           <span>LLM APIs</span>
-          <span>Automation</span>
+          <span>PyMuPDF</span>
+          <span>Bootstrap</span>
           <span>.xlsx Export</span>
-          <span>REST APIs</span>
         </div>
       </section>
     </div>

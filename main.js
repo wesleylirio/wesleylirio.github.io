@@ -2,9 +2,67 @@
   const doc = document.documentElement;
   const langToggle = document.getElementById('langToggle');
   const yearNode = document.getElementById('year');
+  const navDebug = new URLSearchParams(window.location.search).get('debugNav') === '1';
 
   if (yearNode) {
     yearNode.textContent = new Date().getFullYear();
+  }
+
+  function isHomePage() {
+    return !!document.querySelector('.work-grid');
+  }
+
+  function wireProjectBackLink() {
+    const backLink = document.querySelector('.back-link');
+    if (!backLink || isHomePage()) {
+      return;
+    }
+
+    backLink.addEventListener('click', function (event) {
+      const hasHistory = window.history.length > 1;
+      const sameOriginReferrer = !!document.referrer && document.referrer.indexOf(window.location.origin) === 0;
+      if (navDebug) {
+        console.debug('[nav-debug] back-link click', {
+          hasHistory: hasHistory,
+          sameOriginReferrer: sameOriginReferrer,
+          referrer: document.referrer,
+          historyLength: window.history.length,
+          location: window.location.href
+        });
+      }
+
+      if (hasHistory && sameOriginReferrer) {
+        event.preventDefault();
+        window.history.back();
+      }
+    });
+  }
+
+  wireProjectBackLink();
+
+  if (navDebug) {
+    window.addEventListener('pageshow', function (event) {
+      console.debug('[nav-debug] pageshow', {
+        persisted: !!event.persisted,
+        scrollY: Math.round(window.scrollY),
+        href: window.location.href
+      });
+    });
+
+    window.addEventListener('pagehide', function (event) {
+      console.debug('[nav-debug] pagehide', {
+        persisted: !!event.persisted,
+        scrollY: Math.round(window.scrollY),
+        href: window.location.href
+      });
+    });
+
+    window.addEventListener('popstate', function () {
+      console.debug('[nav-debug] popstate', {
+        scrollY: Math.round(window.scrollY),
+        href: window.location.href
+      });
+    });
   }
 
   function initHeroWebGLShader() {
@@ -54,6 +112,14 @@
       'uniform vec3 u_to_a;',
       'uniform vec3 u_to_b;',
       'uniform vec3 u_to_c;',
+      'uniform vec3 u_orange_a;',
+      'uniform vec3 u_orange_b;',
+      'uniform vec3 u_orange_c;',
+      'uniform vec3 u_purple_a;',
+      'uniform vec3 u_purple_b;',
+      'uniform vec3 u_purple_c;',
+      'uniform float u_from_mix;',
+      'uniform float u_to_mix;',
       'uniform float u_wave_progress;',
       'uniform float u_wave_direction;',
       '',
@@ -70,6 +136,23 @@
       '  float c = hash(i + vec2(0.0, 1.0));',
       '  float d = hash(i + vec2(1.0, 1.0));',
       '  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);',
+      '}',
+      '',
+      'vec3 shaderBlendPhase(vec3 orangeColor, vec3 purpleColor, vec2 uv, float sheet, float turbulence, float drift, float core, float filament, float slot) {',
+      '  float diagonal = smoothstep(0.06, 0.94, uv.y * 0.7 + uv.x * 0.3 + (sheet - 0.5) * 0.24 + (turbulence - 0.5) * 0.12);',
+      '  float swirl = 0.5 + 0.5 * sin((uv.x - uv.y) * 4.6 + sheet * 3.4 + drift * 1.8 + u_time * 0.55 + slot);',
+      '  float blend = mix(diagonal, swirl, 0.42);',
+      '  blend += (core - 0.2) * 0.14;',
+      '  blend -= filament * 0.05;',
+      '  blend = clamp(blend, 0.0, 1.0);',
+      '  return mix(orangeColor, purpleColor, blend);',
+      '}',
+      '',
+      'vec3 resolvePhase(vec3 phaseColor, vec3 orangeColor, vec3 purpleColor, float mixMode, vec2 uv, float sheet, float turbulence, float drift, float core, float filament, float slot) {',
+      '  if (mixMode > 0.5) {',
+      '    return shaderBlendPhase(orangeColor, purpleColor, uv, sheet, turbulence, drift, core, filament, slot);',
+      '  }',
+      '  return phaseColor;',
       '}',
       '',
       'void main() {',
@@ -102,10 +185,16 @@
       '  float waveFront = 1.0 - abs(d - radius) / (edge * 1.4);',
       '  waveFront = clamp(waveFront, 0.0, 1.0);',
       '',
-      '  vec3 plasmaBase = mix(u_from_a, u_to_a, morph);',
-      '  vec3 plasmaHot = mix(u_from_b, u_to_b, morph);',
-      '  vec3 plasmaCore = mix(u_from_c, u_to_c, morph);',
-      '  plasmaHot = mix(plasmaHot, u_to_b, waveFront * 0.24);',
+      '  vec3 fromBase = resolvePhase(u_from_a, u_orange_a, u_purple_a, u_from_mix, uv, sheet, turbulence, drift, core, filament, 0.0);',
+      '  vec3 fromHot = resolvePhase(u_from_b, u_orange_b, u_purple_b, u_from_mix, uv, sheet, turbulence, drift, core, filament, 1.7);',
+      '  vec3 fromCore = resolvePhase(u_from_c, u_orange_c, u_purple_c, u_from_mix, uv, sheet, turbulence, drift, core, filament, 3.1);',
+      '  vec3 toBase = resolvePhase(u_to_a, u_orange_a, u_purple_a, u_to_mix, uv, sheet, turbulence, drift, core, filament, 0.0);',
+      '  vec3 toHot = resolvePhase(u_to_b, u_orange_b, u_purple_b, u_to_mix, uv, sheet, turbulence, drift, core, filament, 1.7);',
+      '  vec3 toCore = resolvePhase(u_to_c, u_orange_c, u_purple_c, u_to_mix, uv, sheet, turbulence, drift, core, filament, 3.1);',
+      '  vec3 plasmaBase = mix(fromBase, toBase, morph);',
+      '  vec3 plasmaHot = mix(fromHot, toHot, morph);',
+      '  vec3 plasmaCore = mix(fromCore, toCore, morph);',
+      '  plasmaHot = mix(plasmaHot, toHot, waveFront * 0.24);',
       '  vec3 color = mix(plasmaBase, plasmaHot, filament);',
       '  color = mix(color, plasmaCore, core);',
       '',
@@ -178,6 +267,14 @@
     const uToA = gl.getUniformLocation(program, 'u_to_a');
     const uToB = gl.getUniformLocation(program, 'u_to_b');
     const uToC = gl.getUniformLocation(program, 'u_to_c');
+    const uOrangeA = gl.getUniformLocation(program, 'u_orange_a');
+    const uOrangeB = gl.getUniformLocation(program, 'u_orange_b');
+    const uOrangeC = gl.getUniformLocation(program, 'u_orange_c');
+    const uPurpleA = gl.getUniformLocation(program, 'u_purple_a');
+    const uPurpleB = gl.getUniformLocation(program, 'u_purple_b');
+    const uPurpleC = gl.getUniformLocation(program, 'u_purple_c');
+    const uFromMix = gl.getUniformLocation(program, 'u_from_mix');
+    const uToMix = gl.getUniformLocation(program, 'u_to_mix');
     const uWaveProgress = gl.getUniformLocation(program, 'u_wave_progress');
     const uWaveDirection = gl.getUniformLocation(program, 'u_wave_direction');
 
@@ -187,89 +284,8 @@
     const navEntry = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || null;
     const isRestoreNavigation = !!(navEntry && (navEntry.type === 'reload' || navEntry.type === 'back_forward'));
     const storageKeyScrollY = 'plasma-last-scroll-y';
-    const urlParams = new URLSearchParams(window.location.search);
-    const debugFlagFromUrl = urlParams.get('debugShader');
-    if (debugFlagFromUrl === '1') {
-      try { localStorage.setItem('shader-debug', '1'); } catch (err) {}
-    } else if (debugFlagFromUrl === '0') {
-      try { localStorage.removeItem('shader-debug'); } catch (err) {}
-    }
-    const shaderDebug = (function () {
-      try {
-        return debugFlagFromUrl === '1' || localStorage.getItem('shader-debug') === '1';
-      } catch (err) {
-        return debugFlagFromUrl === '1';
-      }
-    })();
-
-    const phaseNameMap = {
-      0: 'orange',
-      1: 'blue',
-      2: 'purple'
-    };
-
-    let debugPanel = null;
-    let debugFrameCount = 0;
-
-    function ensureDebugPanel() {
-      if (!shaderDebug || debugPanel) {
-        return;
-      }
-      debugPanel = document.createElement('pre');
-      debugPanel.setAttribute('aria-hidden', 'true');
-      debugPanel.style.position = 'fixed';
-      debugPanel.style.right = '10px';
-      debugPanel.style.bottom = '10px';
-      debugPanel.style.zIndex = '3000';
-      debugPanel.style.margin = '0';
-      debugPanel.style.padding = '8px 10px';
-      debugPanel.style.maxWidth = 'min(92vw, 560px)';
-      debugPanel.style.whiteSpace = 'pre-wrap';
-      debugPanel.style.font = '12px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
-      debugPanel.style.color = '#fff';
-      debugPanel.style.background = 'rgba(0,0,0,0.72)';
-      debugPanel.style.border = '1px solid rgba(255,140,44,0.8)';
-      debugPanel.style.borderRadius = '8px';
-      debugPanel.style.pointerEvents = 'none';
-      document.body.appendChild(debugPanel);
-    }
-
-    function debugSnapshot(tag, extra) {
-      if (!shaderDebug) {
-        return;
-      }
-      const storedY = readStoredScrollY();
-      const data = Object.assign({
-        tag: tag,
-        navType: navEntry ? navEntry.type : 'unknown',
-        isRestoreNavigation: isRestoreNavigation,
-        scrollY: Math.round(window.scrollY),
-        storedY: Math.round(storedY),
-        lastScrollY: Math.round(lastScrollY),
-        cycleActivated: cycleActivated,
-        transitionActive: transitionActive,
-        currentPhase: phaseNameMap[currentPhase] || currentPhase,
-        fromPhase: phaseNameMap[fromPhase] || fromPhase,
-        targetPhase: phaseNameMap[targetPhase] || targetPhase,
-        transitionProgress: Number(transitionProgress.toFixed(3)),
-        transitionDirection: transitionDirection,
-        centerX: Number(centerX.toFixed(3)),
-        centerY: Number(centerY.toFixed(3))
-      }, extra || {});
-
-      const text = Object.keys(data).map(function (key) {
-        return key + ': ' + data[key];
-      }).join('\n');
-
-      ensureDebugPanel();
-      if (debugPanel) {
-        debugPanel.textContent = text;
-      }
-
-      if (tag !== 'frame') {
-        console.debug('[shader-debug]', data);
-      }
-    }
+    const storageKeyCenterX = 'plasma-last-center-x';
+    const storageKeyCenterY = 'plasma-last-center-y';
 
     function hexToRgb01(hex) {
       const clean = hex.replace('#', '');
@@ -303,19 +319,19 @@
         c: hexToRgb01('#C94D14')
       },
       {
-        a: hexToRgb01('#09163E'),
-        b: hexToRgb01('#1E4D8B'),
-        c: hexToRgb01('#123565')
-      },
-      {
         a: hexToRgb01('#26086D'),
         b: hexToRgb01('#8A36FF'),
         c: hexToRgb01('#5A1FD4')
+      },
+      {
+        a: hexToRgb01('#6B2171'),
+        b: hexToRgb01('#D96462'),
+        c: hexToRgb01('#B73F47')
       }
     ];
     const phaseOrange = 0;
-    const phaseBlue = 1;
-    const phasePurple = 2;
+    const phasePurple = 1;
+    const phaseBlend = 2;
 
     let cycleActivated = false;
     let transitionActive = false;
@@ -346,16 +362,34 @@
       }
     }
 
+    function readStoredCenter() {
+      try {
+        const x = Number(sessionStorage.getItem(storageKeyCenterX));
+        const y = Number(sessionStorage.getItem(storageKeyCenterY));
+        if (Number.isFinite(x) && Number.isFinite(y)) {
+          return { x: x, y: y };
+        }
+      } catch (err) {
+        // Ignore storage failures.
+      }
+      return null;
+    }
+
+    function writeStoredCenter(x, y) {
+      try {
+        sessionStorage.setItem(storageKeyCenterX, String(Number(x)));
+        sessionStorage.setItem(storageKeyCenterY, String(Number(y)));
+      } catch (err) {
+        // Ignore storage failures.
+      }
+    }
+
     function resolveInitialScrollPosition() {
       const storedY = readStoredScrollY();
       const currentY = window.scrollY;
 
       // For reload/back-forward, force deterministic restoration before shader state setup.
       if (isRestoreNavigation && storedY > 1 && Math.abs(currentY - storedY) > 1) {
-        debugSnapshot('resolveInitialScrollPosition:restoreScrollToStored', {
-          currentY: Math.round(currentY),
-          storedY: Math.round(storedY)
-        });
         window.scrollTo(0, storedY);
         return storedY;
       }
@@ -389,7 +423,11 @@
     }
 
     function targetPhaseForDirection(direction) {
-      return direction > 0 ? phaseBlue : phasePurple;
+      return direction > 0 ? phasePurple : phaseBlend;
+    }
+
+    function isShaderBlendPhase(phaseIndex) {
+      return phaseIndex === phaseBlend;
     }
 
     function scheduleTransition(next, direction) {
@@ -492,6 +530,12 @@
     function applyRestoredScrollState() {
       const currentY = resolveInitialScrollPosition();
       const atTop = currentY <= 1;
+      const storedCenter = readStoredCenter();
+
+      if (isRestoreNavigation && !atTop && storedCenter) {
+        centerX = storedCenter.x;
+        centerY = storedCenter.y;
+      }
 
       if (atTop) {
         cycleActivated = false;
@@ -505,9 +549,9 @@
         // If page opens/restores below top, start from scrolled state instead of hero orange.
         cycleActivated = true;
         transitionActive = false;
-        currentPhase = phaseBlue;
-        fromPhase = phaseBlue;
-        targetPhase = phaseBlue;
+        currentPhase = phasePurple;
+        fromPhase = phasePurple;
+        targetPhase = phasePurple;
         transitionProgress = 1;
         transitionDirection = 1;
       }
@@ -515,7 +559,7 @@
       lastScrollY = currentY;
       writeStoredScrollY(currentY);
       updateUniformAnchors();
-      debugSnapshot('applyRestoredScrollState', { atTop: atTop });
+      writeStoredCenter(centerX, centerY);
     }
 
     function syncShaderToScroll() {
@@ -527,7 +571,7 @@
       }
       if (Math.abs(currentY - lastScrollY) < 0.5) {
         updateUniformAnchors();
-        debugSnapshot('frame');
+        writeStoredCenter(centerX, centerY);
         return;
       }
 
@@ -544,23 +588,17 @@
       }
 
       lastScrollY = currentY;
-      debugSnapshot('syncShaderToScroll:deltaApplied', {
-        delta: Math.round(delta)
-      });
+      writeStoredCenter(centerX, centerY);
     }
 
     function render(now) {
       const time = now * 0.001;
       // Captures restored/programmatic scroll positions even without user wheel/touch input.
       syncShaderToScroll();
-      if (shaderDebug) {
-        debugFrameCount += 1;
-        if (debugFrameCount % 20 === 0) {
-          debugSnapshot('frame');
-        }
-      }
       const waveProgress = transitionActive ? transitionProgress : 1;
 
+      const orangeColors = getPhaseColorSet(phaseOrange, time);
+      const purpleColors = getPhaseColorSet(phasePurple, time);
       const fromColors = getPhaseColorSet(transitionActive ? fromPhase : currentPhase, time);
       const toColors = getPhaseColorSet(transitionActive ? targetPhase : currentPhase, time);
 
@@ -573,6 +611,14 @@
       gl.uniform3f(uToA, toColors.a[0], toColors.a[1], toColors.a[2]);
       gl.uniform3f(uToB, toColors.b[0], toColors.b[1], toColors.b[2]);
       gl.uniform3f(uToC, toColors.c[0], toColors.c[1], toColors.c[2]);
+      gl.uniform3f(uOrangeA, orangeColors.a[0], orangeColors.a[1], orangeColors.a[2]);
+      gl.uniform3f(uOrangeB, orangeColors.b[0], orangeColors.b[1], orangeColors.b[2]);
+      gl.uniform3f(uOrangeC, orangeColors.c[0], orangeColors.c[1], orangeColors.c[2]);
+      gl.uniform3f(uPurpleA, purpleColors.a[0], purpleColors.a[1], purpleColors.a[2]);
+      gl.uniform3f(uPurpleB, purpleColors.b[0], purpleColors.b[1], purpleColors.b[2]);
+      gl.uniform3f(uPurpleC, purpleColors.c[0], purpleColors.c[1], purpleColors.c[2]);
+      gl.uniform1f(uFromMix, isShaderBlendPhase(transitionActive ? fromPhase : currentPhase) ? 1 : 0);
+      gl.uniform1f(uToMix, isShaderBlendPhase(transitionActive ? targetPhase : currentPhase) ? 1 : 0);
       gl.uniform1f(uWaveProgress, waveProgress);
       gl.uniform1f(uWaveDirection, transitionDirection);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -621,7 +667,6 @@
       window.setTimeout(applyRestoredScrollState, 80);
       window.setTimeout(syncShaderToScroll, 100);
       window.setTimeout(syncShaderToScroll, 260);
-      debugSnapshot('event:pageshow');
     });
     window.addEventListener('load', function () {
       applyRestoredScrollState();
@@ -630,24 +675,21 @@
       window.setTimeout(syncShaderToScroll, 140);
       window.setTimeout(applyRestoredScrollState, 420);
       window.setTimeout(syncShaderToScroll, 460);
-      debugSnapshot('event:load');
     });
     onViewportChange();
     applyRestoredScrollState();
-    debugSnapshot('init:afterApplyRestoredScrollState');
     rafId = window.requestAnimationFrame(render);
 
-    window.addEventListener('beforeunload', function () {
+    window.addEventListener('pagehide', function () {
       writeStoredScrollY(window.scrollY);
-      if (rafId) {
-        window.cancelAnimationFrame(rafId);
-      }
+      writeStoredCenter(centerX, centerY);
     });
   }
 
   // Basic i18n placeholder for quick EN/PT toggle.
   const translations = {
     en: {
+      skip_to_content: 'Skip to content',
       brand_sub: 'Creative Technologist',
       nav_work: 'Work',
       nav_about: 'About',
@@ -660,16 +702,16 @@
       work_title: 'Selected Work',
       work_preview: 'Preview',
       work_open: 'Open',
-      work_case_link: 'View case study',
+      work_case_link: 'View Case Study',
       work_1_title: 'Interactive Computer Vision Activation',
       work_1_b1: 'Head-tracking interaction',
       work_1_b2: 'Ranking + QR redirection',
       work_1_b3: 'Offline-ready executable build',
-      work_2_title: '3D AI Conversational Avatar',
+      work_2_title: '3D AI\nConversational Avatar',
       work_2_b1: 'Prompt selection system',
-      work_2_b2: 'LLM + TTS + lip-sync',
+      work_2_b2: 'LLM + STT + TTS + lip-sync',
       work_2_b3: 'Embeddable widget + WebXR',
-      work_3_title: 'Compliance Automation for Bids',
+      work_3_title: 'AI Tender Compliance Platform',
       work_3_b1: 'Technical requirement extraction',
       work_3_b2: 'Compliance analysis and rule matching',
       work_3_b3: 'Structured .xlsx export',
@@ -679,9 +721,9 @@
       work_tag_automation: 'Automation',
       about_title: 'About',
       about_text_1: 'I am Wesley Lirio, and I build interactive systems using AI, real-time 3D, and computer vision.',
-      about_text_2: 'My work focuses on transforming ideas into functional prototypes - systems that can be tested, demonstrated, and iterated quickly. I combine emerging technologies with practical execution, turning concepts into usable products.',
+      about_text_2: 'My work focuses on turning ideas into functional prototypes - systems that can be tested, demonstrated, and iterated quickly. I combine emerging technologies with practical execution to turn concepts into usable products.',
       about_text_3: "I've worked across event activations, AI-driven avatars, and automation tools, always focusing on practical implementation and rapid iteration.",
-      about_text_4: "I'm driven by curiosity, execution, and the challenge of making complex technology feel simple and usable.",
+      about_text_4: "I'm driven by curiosity, execution, and the challenge of turning complex technologies into simple, useful experiences.",
       cap_title: 'Capabilities',
       cap_1: 'Interactive Systems Development',
       cap_2: 'AI Integration & Prototyping',
@@ -691,7 +733,10 @@
       tools_line: 'Tools & Technologies: Three.js, WebGL, WebXR, Node.js, LLM APIs, MediaPipe, Electron, Git, REST APIs.',
       contact_title: 'Contact',
       contact_text: 'Open to opportunities in product development, innovation teams, and interactive systems.',
+      contact_email: 'Email me',
+      contact_connect: "Let's connect",
       activation_back: '← Back to selected work',
+      activation_media_unavailable: 'Video unavailable.',
       activation_title: 'Interactive Computer Vision Activation',
       activation_summary_title: 'Summary',
       activation_summary_text: 'Interactive installation concept built for high-throughput event environments where visitors engage through body/head movement and receive measurable outcomes.',
@@ -707,6 +752,7 @@
       activation_outcome_text: 'Functional prototype validated for high-throughput live activation, with repeatable interaction loops and measurable tracking points.',
       activation_stack_title: 'Tech Stack',
       avatar_back: '← Back to selected work',
+      avatar_media_unavailable: 'Images unavailable.',
       avatar_title: '3D AI Conversational Avatar',
       avatar_summary_title: 'Summary',
       avatar_summary_text: 'Prototype focused on natural interactions through an expressive 3D avatar that responds in real time and can be embedded across channels.',
@@ -719,22 +765,25 @@
       avatar_approach_title: 'Technical Approach',
       avatar_approach_text: 'Built modular architecture to support widget embedding, avatar state control, and future WebXR extension without changing core logic.',
       avatar_outcome_title: 'Outcome',
-      avatar_outcome_text: 'Delivered a demonstrable AI avatar prototype with smooth response flow and reusable architecture for future productization.',
+      avatar_outcome_text: 'Delivered a compelling AI avatar prototype with smooth response flow and reusable architecture for future productization.',
       avatar_stack_title: 'Tech Stack',
       tender_back: '← Back to selected work',
-      tender_title: 'Compliance Automation for Bids',
+      tender_media_unavailable: 'Images unavailable.',
+      tender_title: 'AI Tender Compliance Platform',
       tender_summary_title: 'Summary',
-      tender_summary_text: 'Functional prototype focused on automating technical requirement compliance analysis in bid documents.',
+      tender_summary_text: 'AI-assisted platform built to automate technical compliance analysis for public procurement documents.',
       tender_context_title: 'Context',
-      tender_context_text: 'Bid evaluation workflows demand extensive manual review of technical criteria, compliance rules, and supporting evidence.',
+      tender_context_text: 'Procurement teams rely on manual review of technical criteria, compliance rules, and supporting evidence across large PDF documents.',
       tender_problem_title: 'Problem',
-      tender_problem_text: 'Manual requirement analysis is repetitive, time-consuming, and prone to inconsistency when volume increases.',
+      tender_problem_text: 'Manual analysis becomes slow, repetitive, and difficult to scale when requirement volume and document complexity increase.',
       tender_solution_title: 'Solution',
-      tender_solution_text: 'Implemented an AI-assisted workflow to extract requirements, run compliance checks, and prepare structured outputs for decision support.',
+      tender_solution_text: 'Built a multi-stage AI workflow to extract requirements, validate compliance, and generate structured outputs for analyst review and decision support.',
+      tender_architecture_title: 'Architecture',
+      tender_architecture_text: 'Hybrid AI system combining multi-stage LLM extraction with deterministic validation logic and operator review.',
       tender_approach_title: 'Technical Approach',
-      tender_approach_text: 'Combined document parsing, LLM-driven extraction, validation rules, and spreadsheet generation for auditable analysis flows.',
+      tender_approach_text: 'Combined PDF parsing, layered LLM workflows, deterministic validation rules, real-time observability, and exportable structured outputs.',
       tender_outcome_title: 'Outcome',
-      tender_outcome_text: 'Delivered a functional prototype that reduced manual effort and increased consistency in requirement compliance analysis.',
+      tender_outcome_text: 'Delivered an MVP with auditable compliance analysis, human-in-the-loop review, and evidence-based outputs for operational workflows.',
       tender_stack_title: 'Tech Stack',
       tender_slide_1: 'Dashboard for bid uploads and access to analysis history.',
       tender_slide_2: 'Interface for selecting the items to extract for analysis.',
@@ -743,103 +792,113 @@
       tender_slide_5: 'Chat-with-catalog system UI (AI trained on the company catalog to answer questions).'
     },
     pt: {
+      skip_to_content: 'Ir para o conteúdo',
       brand_sub: 'Tecnologista Criativo',
       nav_work: 'Trabalhos',
       nav_about: 'Sobre',
       nav_contact: 'Contato',
       hero_eyebrow: 'Creative Technologist',
       hero_title: 'Eu construo sistemas interativos.',
-      hero_sub_line_1: 'IA • WebGL • Visao computacional • WebXR • Avatares',
+      hero_sub_line_1: 'IA • WebGL • Visão computacional • WebXR • Avatares',
       hero_sub_line_2: '',
       hero_cta: 'Ver trabalhos selecionados',
       work_title: 'Trabalhos Selecionados',
-      work_preview: 'Preview',
+      work_preview: 'Prévia',
       work_open: 'Abrir',
-      work_case_link: 'Ver case study',
-      work_1_title: 'Ativacao Interativa com Visao Computacional',
-      work_1_b1: 'Interacao com rastreamento de cabeca',
+      work_case_link: 'Ver estudo de caso',
+      work_1_title: 'Ativação Interativa com Visão Computacional',
+      work_1_b1: 'Interação com rastreamento de cabeça',
       work_1_b2: 'Ranking + redirecionamento por QR',
-      work_1_b3: 'Build executavel pronto para offline',
+      work_1_b3: 'Build executável pronto para offline',
       work_2_title: 'Avatar Conversacional 3D com IA',
-      work_2_b1: 'Sistema de selecao de prompt',
-      work_2_b2: 'LLM + TTS + lip-sync',
-      work_2_b3: 'Widget incorporavel + WebXR',
-      work_3_title: 'Automacao para Licitacoes',
-      work_3_b1: 'Extracao de requisitos tecnicos',
-      work_3_b2: 'Analise de conformidade e regras',
-      work_3_b3: 'Exportacao estruturada em .xlsx',
+      work_2_b1: 'Sistema de seleção de prompt',
+      work_2_b2: 'LLM + STT + TTS + lip-sync',
+      work_2_b3: 'Widget incorporável + WebXR',
+      work_3_title: 'Plataforma de IA para Conformidade em Licitações',
+      work_3_b1: 'Extração de requisitos técnicos',
+      work_3_b2: 'Análise de conformidade e regras',
+      work_3_b3: 'Exportação estruturada em .xlsx',
       work_tag_events: 'Eventos',
       work_tag_game: 'Jogo',
       work_tag_full_stack: 'Full-stack',
-      work_tag_automation: 'Automacao',
+      work_tag_automation: 'Automação',
       about_title: 'Sobre',
-      about_text_1: 'Eu sou Wesley Lirio e construo sistemas interativos usando IA, 3D em tempo real e visao computacional.',
-      about_text_2: 'Meu foco e transformar ideias em prototipos funcionais - sistemas que podem ser testados, demonstrados e iterados rapidamente.',
-      about_text_3: 'Tenho atuado com ativacoes para eventos, avatares com IA e ferramentas de automacao, com foco em implementacao pratica e iteracao rapida.',
-      about_text_4: 'Sou movido por curiosidade, execucao e pelo desafio de tornar tecnologia complexa simples e utilizavel.',
+      about_text_1: 'Eu sou Wesley Lirio e construo sistemas interativos usando IA, 3D em tempo real e visão computacional.',
+      about_text_2: 'Meu foco é transformar ideias em protótipos funcionais - sistemas que podem ser testados, demonstrados e iterados rapidamente.',
+      about_text_3: 'Tenho atuado com ativações para eventos, avatares com IA e ferramentas de automação, com foco em implementação prática e iteração rápida.',
+      about_text_4: 'Sou movido pela curiosidade, pela execução e pelo desafio de transformar tecnologias complexas em experiências simples e úteis.',
       cap_title: 'Capacidades',
       cap_1: 'Desenvolvimento de Sistemas Interativos',
-      cap_2: 'Integracao e Prototipacao com IA',
+      cap_2: 'Integração e Prototipação com IA',
       cap_3: '3D em Tempo Real e WebXR',
-      cap_4: 'Tecnologia para Eventos e Ativacoes',
-      cap_5: 'Prototipacao Tecnica para Inovacao',
+      cap_4: 'Tecnologia para Eventos e Ativações',
+      cap_5: 'Prototipação Técnica para Inovação',
       tools_line: 'Ferramentas e Tecnologias: Three.js, WebGL, WebXR, Node.js, APIs de LLM, MediaPipe, Electron, Git, REST APIs.',
       contact_title: 'Contato',
-      contact_text: 'Aberto a oportunidades em desenvolvimento de produtos, times de inovacao e sistemas interativos.',
+      contact_text: 'Aberto a oportunidades em desenvolvimento de produtos, times de inovação e sistemas interativos.',
+      contact_email: 'Enviar e-mail',
+      contact_connect: 'Vamos nos conectar',
       activation_back: '← Voltar para trabalhos selecionados',
-      activation_title: 'Ativacao Interativa com Visao Computacional',
+      activation_media_unavailable: 'Vídeo indisponível.',
+      activation_title: 'Ativação Interativa com Visão Computacional',
       activation_summary_title: 'Resumo',
-      activation_summary_text: 'Conceito de instalacao interativa para ambientes de eventos com alto fluxo, em que visitantes interagem com movimentos de cabeca/corpo e geram resultados mensuraveis.',
+      activation_summary_text: 'Conceito de instalação interativa para ambientes de eventos com alto fluxo, em que visitantes interagem com movimentos de cabeça/corpo e geram resultados mensuráveis.',
       activation_context_title: 'Contexto',
-      activation_context_text: 'O projeto foi pensado para ativacoes ao vivo com baixo atrito de setup, impacto visual e performance robusta mesmo com internet instavel.',
+      activation_context_text: 'O projeto foi pensado para ativações ao vivo com baixo atrito de setup, impacto visual e performance robusta mesmo com internet instável.',
       activation_problem_title: 'Problema',
-      activation_problem_text: 'Muitas experiencias em eventos sao passivas ou dificeis de escalar. O desafio foi criar um loop rapido de interacao com ranking e redirecionamento pos-experiencia.',
-      activation_solution_title: 'Solucao',
-      activation_solution_text: 'Foi desenvolvido um jogo com visao computacional, interacao por rastreamento de cabeca, feedback de ranking e handoff via QR para continuar a jornada no mobile.',
-      activation_approach_title: 'Abordagem Tecnica',
-      activation_approach_text: 'Pipelines de CV foram otimizados para resposta em tempo real e a experiencia foi empacotada em fluxo executavel para operacao offline confiavel em eventos.',
+      activation_problem_text: 'Muitas experiências em eventos são passivas ou difíceis de escalar. O desafio foi criar um loop rápido de interação com ranking e redirecionamento pós-experiência.',
+      activation_solution_title: 'Solução',
+      activation_solution_text: 'Foi desenvolvido um jogo com visão computacional, interação por rastreamento de cabeça, feedback de ranking e handoff via QR para continuar a jornada no mobile.',
+      activation_approach_title: 'Abordagem Técnica',
+      activation_approach_text: 'Pipelines de CV foram otimizados para resposta em tempo real e a experiência foi empacotada em fluxo executável para operação offline confiável em eventos.',
       activation_outcome_title: 'Resultado',
-      activation_outcome_text: 'Prototipo funcional validado para ativacao ao vivo de alto fluxo, com loops repetiveis de interacao e pontos de medicao.',
-      activation_stack_title: 'Stack Tecnica',
+      activation_outcome_text: 'Protótipo funcional validado para ativação ao vivo de alto fluxo, com loops repetíveis de interação e pontos de medição.',
+      activation_stack_title: 'Stack Técnica',
       avatar_back: '← Voltar para trabalhos selecionados',
+      avatar_media_unavailable: 'Imagens indisponíveis.',
       avatar_title: 'Avatar Conversacional 3D com IA',
       avatar_summary_title: 'Resumo',
-      avatar_summary_text: 'Prototipo focado em interacoes naturais com um avatar 3D expressivo que responde em tempo real e pode ser incorporado em diferentes canais.',
+      avatar_summary_text: 'Protótipo focado em interações naturais com um avatar 3D expressivo que responde em tempo real e pode ser incorporado em diferentes canais.',
       avatar_context_title: 'Contexto',
-      avatar_context_text: 'O objetivo foi conectar IA conversacional e identidade visual criando uma interface com avatar adequada para engajamento e demonstracoes.',
+      avatar_context_text: 'O objetivo foi conectar IA conversacional e identidade visual criando uma interface com avatar adequada para engajamento e demonstrações.',
       avatar_problem_title: 'Problema',
-      avatar_problem_text: 'Assistentes apenas em texto perdem presenca emocional e podem parecer frios em produtos guiados por experiencia. Renderizacao em tempo real e lip-sync costumam ser frageis.',
-      avatar_solution_title: 'Solucao',
-      avatar_solution_text: 'Foi implementado um pipeline completo combinando respostas de LLM, saida em TTS e animacao de lip-sync em uma cena WebGL performatica.',
-      avatar_approach_title: 'Abordagem Tecnica',
-      avatar_approach_text: 'Arquitetura modular para suportar incorporacao via widget, controle de estado do avatar e extensao futura para WebXR sem alterar a logica central.',
+      avatar_problem_text: 'Assistentes apenas em texto perdem presença emocional e podem parecer frios em produtos guiados por experiência. Renderização em tempo real e lip-sync costumam ser frágeis.',
+      avatar_solution_title: 'Solução',
+      avatar_solution_text: 'Foi implementado um pipeline completo combinando respostas de LLM, saída em TTS e animação de lip-sync em uma cena WebGL performática.',
+      avatar_approach_title: 'Abordagem Técnica',
+      avatar_approach_text: 'Arquitetura modular para suportar incorporação via widget, controle de estado do avatar e extensão futura para WebXR sem alterar a lógica central.',
       avatar_outcome_title: 'Resultado',
-      avatar_outcome_text: 'Foi entregue um prototipo demonstravel de avatar com IA, com fluxo de resposta fluido e arquitetura reutilizavel para evolucao de produto.',
-      avatar_stack_title: 'Stack Tecnica',
+      avatar_outcome_text: 'Foi entregue um protótipo demonstrável de avatar com IA, com fluxo de resposta fluido e arquitetura reutilizável para evolução de produto.',
+      avatar_stack_title: 'Stack Técnica',
       tender_back: '← Voltar para trabalhos selecionados',
-      tender_title: 'Automacao de Conformidade para Licitacoes',
+      tender_media_unavailable: 'Imagens indisponíveis.',
+      tender_title: 'Plataforma de IA para Conformidade em Licitações',
       tender_summary_title: 'Resumo',
-      tender_summary_text: 'Prototipo funcional focado em automatizar a analise de conformidade de requisitos tecnicos em editais.',
+      tender_summary_text: 'Plataforma com IA desenvolvida para automatizar a análise de conformidade técnica em documentos de licitação.',
       tender_context_title: 'Contexto',
-      tender_context_text: 'Fluxos de avaliacao de licitacoes exigem revisao manual extensa de criterios tecnicos, regras de conformidade e evidencias.',
+      tender_context_text: 'Equipes de licitação dependem de revisão manual de critérios técnicos, regras de conformidade e evidências em grandes documentos PDF.',
       tender_problem_title: 'Problema',
-      tender_problem_text: 'A analise manual de requisitos e repetitiva, demorada e sujeita a inconsistencias quando o volume aumenta.',
-      tender_solution_title: 'Solucao',
-      tender_solution_text: 'Foi implementado um fluxo com IA para extrair requisitos, executar checagens de conformidade e preparar saidas estruturadas para apoio a decisao.',
-      tender_approach_title: 'Abordagem Tecnica',
-      tender_approach_text: 'Combinacao de parsing de documentos, extracao via LLM, regras de validacao e geracao de planilhas para fluxos auditaveis.',
+      tender_problem_text: 'A análise manual se torna lenta, repetitiva e difícil de escalar quando o volume de requisitos e a complexidade documental aumentam.',
+      tender_solution_title: 'Solução',
+      tender_solution_text: 'Foi desenvolvido um fluxo de IA em múltiplas etapas para extrair requisitos, validar conformidade e gerar saídas estruturadas para revisão analítica e apoio à decisão.',
+      tender_architecture_title: 'Arquitetura',
+      tender_architecture_text: 'Sistema híbrido de IA que combina extração em múltiplas etapas com LLMs, lógica determinística de validação e revisão por operador.',
+      tender_approach_title: 'Abordagem Técnica',
+      tender_approach_text: 'Combinação de parsing de PDFs, fluxos em camadas com LLMs, regras determinísticas de validação, observabilidade em tempo real e saídas estruturadas exportáveis.',
       tender_outcome_title: 'Resultado',
-      tender_outcome_text: 'Foi entregue um prototipo funcional que reduziu esforco manual e aumentou a consistencia na analise de conformidade.',
-      tender_stack_title: 'Stack Tecnica',
-      tender_slide_1: 'Dashboard para upload de editais e acesso ao historico de analises.',
-      tender_slide_2: 'Interface de selecao de itens a serem extraidos para a analise.',
-      tender_slide_3: 'Componentes do item extraidos.',
-      tender_slide_4: 'Exemplo de analise comprobatoria do item extraido.',
-      tender_slide_5: 'UI do sistema de Chat-Com-Catalogo (IA treinada no catalogo da empresa para responder qualquer duvida).'
+      tender_outcome_text: 'Foi entregue um MVP com análise auditável de conformidade, revisão human-in-the-loop e saídas baseadas em evidências para fluxos operacionais.',
+      tender_stack_title: 'Stack Técnica',
+      tender_slide_1: 'Dashboard para upload de editais e acesso ao histórico de análises.',
+      tender_slide_2: 'Interface de seleção de itens a serem extraídos para a análise.',
+      tender_slide_3: 'Componentes do item extraídos.',
+      tender_slide_4: 'Exemplo de análise comprobatória do item extraído.',
+      tender_slide_5: 'UI do sistema de Chat-Com-Catálogo (IA treinada no catálogo da empresa para responder qualquer dúvida).'
     }
   };
 
   function setLanguage(lang) {
+    const activeHash = window.location.hash;
+    const activeTarget = activeHash ? document.querySelector(activeHash) : null;
     const current = translations[lang] ? lang : 'en';
     doc.setAttribute('data-lang', current);
 
@@ -867,6 +926,19 @@
       detail: { lang: current }
     }));
 
+    if (activeTarget) {
+      window.requestAnimationFrame(function () {
+        const header = document.querySelector('.site-header');
+        const headerOffset = header ? header.getBoundingClientRect().height : 0;
+        const rect = activeTarget.getBoundingClientRect();
+        const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+        const viewportAvailable = Math.max(1, window.innerHeight - headerOffset);
+        const centerOffset = (viewportAvailable - rect.height) / 2;
+        const centeredY = window.scrollY + rect.top - headerOffset - centerOffset;
+        const targetY = Math.max(0, Math.min(maxScroll, centeredY));
+        window.scrollTo({ top: targetY, behavior: 'auto' });
+      });
+    }
   }
 
   if (langToggle) {
@@ -924,7 +996,7 @@
         const headerOffset = header ? header.getBoundingClientRect().height : 0;
         const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
         const viewportAvailable = Math.max(1, window.innerHeight - headerOffset);
-        const centerOffset = Math.max(0, (viewportAvailable - rect.height) / 2);
+        const centerOffset = (viewportAvailable - rect.height) / 2;
         const centeredY = window.scrollY + rect.top - headerOffset - centerOffset;
         const targetY = Math.max(0, Math.min(maxScroll, centeredY));
         window.scrollTo({ top: targetY, behavior: reduceMotion ? 'auto' : 'smooth' });
